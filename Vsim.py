@@ -7,7 +7,11 @@ import sys
 from typing import Dict, List, Tuple
 
 # ------------------------- Helpers -------------------------
+
 MASK32 = 0xFFFFFFFF
+
+# set up the mask so that I can interpret and keep values inside the 32-bit limit
+# im doing two helper functions, each for the unsigned and signed versions (two's complement)
 
 def to_u32(x: int) -> int:
     return x & MASK32
@@ -228,7 +232,7 @@ def write_disassembly(rows: List[Tuple[str,int,str]], outpath: str) -> None:
 
 # ------------------------- Simulation -------------------------
 
-class Machine:
+class Simulator:
     def __init__(self, instr_map: Dict[int, int], data_mem: Dict[int, int], first_data_addr: int, last_data_addr: int):
         self.reg = [0] * 32
         self.pc = 256
@@ -352,7 +356,7 @@ class Machine:
         return out
 
 
-def write_simulation(machine: Machine, outpath: str) -> None:
+def write_simulation(machine: Simulator, outpath: str) -> None:
     with open(outpath, 'w') as f:
         while True:
             w, d = machine.fetch()
@@ -416,7 +420,7 @@ def main(argv: List[str]) -> None:
     last_data_addr = max(data_mem.keys()) if data_mem else first_data_addr - 4
 
     # Simulation
-    m = Machine(instr_map, data_mem, first_data_addr, last_data_addr)
+    m = Simulator(instr_map, data_mem, first_data_addr, last_data_addr)
     write_simulation(m, 'simulation.txt')
 
 if __name__ == '__main__':

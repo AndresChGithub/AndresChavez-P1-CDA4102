@@ -67,9 +67,9 @@ OPC4 = {
     0b11111: 'break',
 }
 
-# ------------------------- Disassembly -------------------------
+# () disassembling kinda helper functions
 
-def reg_name(idx: int) -> str:
+def int_to_reg_format(idx: int) -> str:
     return f"x{idx}"
 
 class Decoded:
@@ -108,12 +108,12 @@ def decode_instr(word: int, addr: int) -> Decoded:
             imm_raw = sign_extend(((imm_high << 5) | imm_low), 12)
             br_off = imm_raw << 1
             target = addr + br_off
-            text = f"{mnem} {reg_name(rs1)}, {reg_name(rs2)}, #{imm_raw}"
+            text = f"{mnem} {int_to_reg_format(rs1)}, {int_to_reg_format(rs2)}, #{imm_raw}"
             return Decoded(mnem, text, rs1=rs1, rs2=rs2, imm=imm_raw, target=target)
         elif mnem == 'sw':
             # store word: print as source, offset(base) with offset w/o '#'
             # Expected disassembly uses first reg as source and second as base.
-            text = f"sw {reg_name(rs1)}, {imm_se}({reg_name(rs2)})"
+            text = f"sw {int_to_reg_format(rs1)}, {imm_se}({int_to_reg_format(rs2)})"
             return Decoded('sw', text, rs1=rs1, rs2=rs2, imm=imm_se)
 
     elif cat == CAT2:
@@ -124,7 +124,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
         mnem = OPC2.get(opc5, 'ill')
         if mnem == 'ill':
             return Decoded('ill', f'.word {word:032b}')
-        text = f"{mnem} {reg_name(rd)}, {reg_name(rs1)}, {reg_name(rs2)}"
+        text = f"{mnem} {int_to_reg_format(rd)}, {int_to_reg_format(rs1)}, {int_to_reg_format(rs2)}"
         return Decoded(mnem, text, rd=rd, rs1=rs1, rs2=rs2)
 
     elif cat == CAT3:
@@ -137,15 +137,15 @@ def decode_instr(word: int, addr: int) -> Decoded:
         if mnem == 'ill':
             return Decoded('ill', f'.word {word:032b}')
         if mnem in ('addi', 'andi', 'ori'):
-            text = f"{mnem} {reg_name(rd)}, {reg_name(rs1)}, #{imm_se}"
+            text = f"{mnem} {int_to_reg_format(rd)}, {int_to_reg_format(rs1)}, #{imm_se}"
             return Decoded(mnem, text, rd=rd, rs1=rs1, imm=imm_se)
         elif mnem in ('slli', 'srai'):
             shamt = imm12 & 0x1F
-            text = f"{mnem} {reg_name(rd)}, {reg_name(rs1)}, #{shamt}"
+            text = f"{mnem} {int_to_reg_format(rd)}, {int_to_reg_format(rs1)}, #{shamt}"
             return Decoded(mnem, text, rd=rd, rs1=rs1, imm=shamt)
         elif mnem == 'lw':
             # lw prints offset(base) with no '#'
-            text = f"lw {reg_name(rd)}, {imm_se}({reg_name(rs1)})"
+            text = f"lw {int_to_reg_format(rd)}, {imm_se}({int_to_reg_format(rs1)})"
             return Decoded('lw', text, rd=rd, rs1=rs1, imm=imm_se)
 
     elif cat == CAT4:
@@ -160,7 +160,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
             off = imm_se << 1
             target = addr + off
             # Disassembly prints the immediate (not absolute target)
-            text = f"jal {reg_name(rd)}, #{imm_se}"
+            text = f"jal {int_to_reg_format(rd)}, #{imm_se}"
             return Decoded('jal', text, rd=rd, imm=imm_se, target=target)
         elif mnem == 'break':
             return Decoded('break', 'break')

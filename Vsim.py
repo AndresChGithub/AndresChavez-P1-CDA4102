@@ -1,12 +1,7 @@
-#!/usr/bin/env python3
-# Vsim.py — Single-file RISC-V-like disassembler & simulator per CDA 4102/5155 Project 1 (Fall 2025)
-# NOTE: This program writes two files: disassembly.txt and simulation.txt
-# Usage: python3 Vsim.py inputfilename.txt
-
 import sys
 from typing import Dict, List, Tuple
 
-# ------------------------- Helpers -------------------------
+# () smaller helper functions:
 
 MASK32 = 0xFFFFFFFF
 
@@ -32,7 +27,9 @@ def bits(x: int, hi: int, lo: int) -> int:
 
 # bit slicer
 
-# ------------------------- ISA decode tables -------------------------
+
+# () decode tables:
+
 # Category by 2 LSB (rightmost two bits of instruction)
 CAT1 = 0b00  # beq, bne, blt, sw (S-type layout, but branches treat imm specially)
 CAT2 = 0b01  # add, sub, and, or (R-type)

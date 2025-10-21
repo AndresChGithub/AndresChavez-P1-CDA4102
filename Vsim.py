@@ -67,7 +67,7 @@ OPC4 = {
     0b11111: 'break',
 }
 
-# () disassembling kinda helper functions
+# () code for the disassembling side of things:
 
 def int_to_reg_format(idx: int) -> str:
     return f"x{idx}"
@@ -75,7 +75,7 @@ def int_to_reg_format(idx: int) -> str:
 class Decoded:
     def __init__(self, kind: str, text: str, 
                  rd=None, rs1=None, rs2=None, imm=None, target=None):
-        self.kind = kind            # mnemonic like 'add' or 'DATA' or 'break'
+        self.kind = kind            # the kind of mnemonic, like 'add' or 'DATA' or 'break'
         self.text = text            # pretty-printed assembly text (for disassembly + simulation header)
         self.rd = rd; self.rs1 = rs1; self.rs2 = rs2
         self.imm = imm              # signed int for immediates (already sign-extended)

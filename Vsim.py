@@ -30,13 +30,15 @@ def bits(x: int, hi: int, lo: int) -> int:
 
 # () decode tables:
 
-# Category by 2 LSB (rightmost two bits of instruction)
-CAT1 = 0b00  # beq, bne, blt, sw (S-type layout, but branches treat imm specially)
-CAT2 = 0b01  # add, sub, and, or (R-type)
-CAT3 = 0b10  # addi, andi, ori, sll, sra, lw (I-type)
-CAT4 = 0b11  # jal, break (U-type-like per spec)
+# category of instruction is based off of the rightmost bit
 
-# Opcode (5 bits directly above the 2 LSBs) per category
+CAT1 = 0b00  # beq, bne, blt, sw 
+CAT2 = 0b01  # add, sub, and, or 
+CAT3 = 0b10  # addi, andi, ori, sll, sra, lw 
+CAT4 = 0b11  # jal, break
+
+# Opcodes per category:
+
 OPC1 = {
     0b00000: 'beq',
     0b00001: 'bne',

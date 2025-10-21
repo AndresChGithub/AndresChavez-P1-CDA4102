@@ -11,7 +11,6 @@ from typing import Dict, List, Tuple
 MASK32 = 0xFFFFFFFF
 
 # set up the mask so that I can interpret and keep values inside the 32-bit limit
-# im doing two helper functions, each for the unsigned and signed versions (two's complement)
 
 def to_u32(x: int) -> int:
     return x & MASK32
@@ -20,17 +19,18 @@ def to_s32(x: int) -> int:
     x &= MASK32
     return x if x < 0x80000000 else x - 0x100000000
 
-# sign-extend a value with bitwidth bits to 32-bit signed
-# e.g., sign_extend(imm, 12) for 12-bit
+# im doing two helper functions, each for the unsigned and signed versions (two's complement)
 
 def sign_extend(val: int, bits: int) -> int:
     sign_bit = 1 << (bits - 1)
     return (val & (sign_bit - 1)) - (val & sign_bit)
 
-# extract bits inclusive [hi:lo] from 32-bit int
+# sign-extend a value with bitwidth bits to 32-bit signed
 
 def bits(x: int, hi: int, lo: int) -> int:
     return (x >> lo) & ((1 << (hi - lo + 1)) - 1)
+
+# bit slicer
 
 # ------------------------- ISA decode tables -------------------------
 # Category by 2 LSB (rightmost two bits of instruction)

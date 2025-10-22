@@ -90,7 +90,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
         rs1 = bits(word, 19, 15)
         imm_low = bits(word, 11, 7)
         imm_high = bits(word, 31, 25)
-        imm12 = (imm_high << 5) | imm_low  # 12-bit
+        imm12 = (imm_high << 5) | imm_low  # 12 bit
         imm_se = sign_extend(imm12, 12)
 
         mnem = OPC1.get(opc5, 'ill')
@@ -161,13 +161,13 @@ def decode_instr(word: int, addr: int) -> Decoded:
     return Decoded('ill', f'.word {word:032b}')
 
 
-# ------------------------- File I/O and Disassembly pass -------------------------
+# Things for input and output of files + handingling disassembled code
 
 def load_words(path: str) -> List[str]:
     lines: List[str] = []
     with open(path, 'r', newline='') as f:
         for raw in f:
-            s = raw.strip()  # handles both \n and \r\n
+            s = raw.strip()  # for the requirement where we have to handle both \n and \r\n
             if not s:
                 continue
             if len(s) != 32 or any(c not in '01' for c in s):
@@ -177,12 +177,12 @@ def load_words(path: str) -> List[str]:
     return lines
 
 def disassemble(bitlines: List[str]) -> Tuple[List[Tuple[str,int,str]], int, Dict[int,int]]:
-    """
-    Returns:
-      rows: list of (bitstr, addr, asm_text)
-      first_data_addr: address where data starts
-      data_mem: {addr: signed_int}
-    """
+    
+    # what this really returns is:
+    # rows: list of (bitstr, addr, asm_text)
+    # first_data_addr: address where data starts
+    # data_mem: {addr: signed_int}
+
     rows: List[Tuple[str,int,str]] = []
     base_addr = 256
     addr = base_addr

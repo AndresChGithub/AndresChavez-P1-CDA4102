@@ -28,12 +28,12 @@ def regstr(i):
 # decode tables (the last 2 bits choose category, next 5 bits choose opcode)
 CAT1 = 0b00   # beq, bne, blt, sw
 CAT2 = 0b01   # add, sub, and, or
-CAT3 = 0b10   # addi, andi, ori, slli, srai, lw
+CAT3 = 0b10   # addi, andi, ori, sll, sra, lw
 CAT4 = 0b11   # jal, break
 
 OPC1 = { 0b00000: 'beq', 0b00001: 'bne', 0b00010: 'blt', 0b00011: 'sw' }
 OPC2 = { 0b00000: 'add', 0b00001: 'sub', 0b00010: 'and', 0b00011: 'or' }
-OPC3 = { 0b00000: 'addi', 0b00001: 'andi', 0b00010: 'ori', 0b00011: 'slli', 0b00100: 'srai', 0b00101: 'lw' }
+OPC3 = { 0b00000: 'addi', 0b00001: 'andi', 0b00010: 'ori', 0b00011: 'sll', 0b00100: 'sra', 0b00101: 'lw' }
 OPC4 = { 0b00000: 'jal',  0b11111: 'break' }
 
 # decoded instruction container
@@ -65,7 +65,7 @@ def decode(word, addr):
             txt = f"{m} {regstr(rs1)}, {regstr(rs2)}, #{imm_raw}"
             return mkinstr(m, txt, rs1=rs1, rs2=rs2, imm=imm_raw, target=tgt)
         else:  # sw
-            txt = f"sw {regstr(rs1)}, {imm_se}({regstr(rs2)})"
+            txt = f"sw {regstr(rs2)}, {imm_se}({regstr(rs1)})"
             return mkinstr('sw', txt, rs1=rs1, rs2=rs2, imm=imm_se)
 
     if cat == CAT2:
@@ -86,10 +86,14 @@ def decode(word, addr):
         m = OPC3.get(opc5, 'ill')
         if m == 'ill':
             return mkinstr('ill', f'.word {word:032b}')
-        if m in ('addi', 'andi', 'ori'):
+        if m == 'addi':
             txt = f"{m} {regstr(rd)}, {regstr(rs1)}, #{imm_se}"
             return mkinstr(m, txt, rd=rd, rs1=rs1, imm=imm_se)
-        if m in ('slli', 'srai'):
+        if m in ('andi', 'ori'):
+            imm_u = imm12
+            txt = f"{m} {regstr(rd)}, {regstr(rs1)}, #{imm_u}"
+            return mkinstr(m, txt, rd=rd, rs1=rs1, imm=imm_u)
+        if m in ('sll', 'sra'):
             sh = imm12 & 31
             txt = f"{m} {regstr(rd)}, {regstr(rs1)}, #{sh}"
             return mkinstr(m, txt, rd=rd, rs1=rs1, imm=sh)
@@ -219,10 +223,10 @@ class Simulator:
             self.set_reg(d["rd"], to_s32(to_u32(self.reg[d["rs1"]]) & to_u32(d["imm"])))
         elif k == 'ori':
             self.set_reg(d["rd"], to_s32(to_u32(self.reg[d["rs1"]]) | to_u32(d["imm"])))
-        elif k == 'slli':
+        elif k == 'sll':
             sh = d["imm"] & 31
             self.set_reg(d["rd"], to_s32(to_u32(self.reg[d["rs1"]]) << sh))
-        elif k == 'srai':
+        elif k == 'sra':
             sh = d["imm"] & 31
             self.set_reg(d["rd"], to_s32(self.reg[d["rs1"]] >> sh))
         elif k == 'lw':
@@ -230,8 +234,8 @@ class Simulator:
             self.set_reg(d["rd"], self.get_mem(addr))
         elif k == 'sw':
             # printed as sw src(rs1), imm(base=rs2)
-            addr = to_s32(self.reg[d["rs2"]] + d["imm"])
-            self.set_mem(addr, self.reg[d["rs1"]])
+            addr = to_s32(self.reg[d["rs1"]] + d["imm"])
+            self.set_mem(addr, self.reg[d["rs2"]])
         elif k in ('beq', 'bne', 'blt'):
             a = self.reg[d["rs1"]]
             b = self.reg[d["rs2"]]

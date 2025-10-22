@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple
 MASK32 = 0xFFFFFFFF
 
 # set up the mask so that I can interpret and keep values inside the 32-bit limit
-
 def to_u32(x: int) -> int:
     return x & MASK32
 
@@ -15,13 +14,11 @@ def to_s32(x: int) -> int:
     return x if x < 0x80000000 else x - 0x100000000
 
 # im doing two helper functions, each for the unsigned and signed versions (two's complement)
-
 def sign_extend(val: int, bits: int) -> int:
     sign_bit = 1 << (bits - 1)
     return (val & (sign_bit - 1)) - (val & sign_bit)
 
 # sign-extend a value with bitwidth bits to 32-bit signed
-
 def bits(x: int, hi: int, lo: int) -> int:
     return (x >> lo) & ((1 << (hi - lo + 1)) - 1)
 
@@ -30,15 +27,13 @@ def bits(x: int, hi: int, lo: int) -> int:
 
 # () decode tables:
 
-# category of instruction is based off of the rightmost bit
-
-CAT1 = 0b00  # beq, bne, blt, sw 
-CAT2 = 0b01  # add, sub, and, or 
-CAT3 = 0b10  # addi, andi, ori, sll, sra, lw 
+# category of instruction is based off of the two rightmost bits
+CAT1 = 0b00  # beq, bne, blt, sw
+CAT2 = 0b01  # add, sub, and, or
+CAT3 = 0b10  # addi, andi, ori, slli, srai, lw
 CAT4 = 0b11  # jal, break
 
 # Opcodes per category:
-
 OPC1 = {
     0b00000: 'beq',
     0b00001: 'bne',
@@ -73,7 +68,7 @@ def int_to_reg_format(idx: int) -> str:
     return f"x{idx}"
 
 class Decoded:
-    def __init__(self, kind: str, text: str, 
+    def __init__(self, kind: str, text: str,
                  rd=None, rs1=None, rs2=None, imm=None, target=None):
         self.kind = kind            # the kind of mnemonic, like 'add' or 'DATA' or 'break'
         self.text = text            # pretty-printed assembly text (for disassembly + simulation header)
@@ -81,18 +76,16 @@ class Decoded:
         self.imm = imm              # signed int for immediates (already sign-extended)
         self.target = target        # computed target address for branches/jal (int)
 
-
 def parse_word(bitstr: str) -> int:
     return int(bitstr, 2)
 
-
 def decode_instr(word: int, addr: int) -> Decoded:
-    # Determine category by the 2 LSBs
+    # Determine category by the 2 rightmost
     cat = word & 0b11
     opc5 = (word >> 2) & 0b11111
 
     if cat == CAT1:
-        # S-type layout for fields: imm[11:5]=[31:25], rs2=[24:20], rs1=[19:15], func3=[14:12]==000, imm[4:0]=[11:7]
+        # S-type layout for fields: imm[11:5]=[31:25], rs2=[24:20], rs1=[19:15], imm[4:0]=[11:7]
         rs2 = bits(word, 24, 20)
         rs1 = bits(word, 19, 15)
         imm_low = bits(word, 11, 7)
@@ -111,8 +104,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
             text = f"{mnem} {int_to_reg_format(rs1)}, {int_to_reg_format(rs2)}, #{imm_raw}"
             return Decoded(mnem, text, rs1=rs1, rs2=rs2, imm=imm_raw, target=target)
         elif mnem == 'sw':
-            # store word: print as source, offset(base) with offset w/o '#'
-            # Expected disassembly uses first reg as source and second as base.
+            # print as source, offset(base); no '#'
             text = f"sw {int_to_reg_format(rs1)}, {imm_se}({int_to_reg_format(rs2)})"
             return Decoded('sw', text, rs1=rs1, rs2=rs2, imm=imm_se)
 
@@ -149,7 +141,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
             return Decoded('lw', text, rd=rd, rs1=rs1, imm=imm_se)
 
     elif cat == CAT4:
-        # U-type per spec: rd=[11:7], imm[19:0]=[31:12]
+        # U-type: rd=[11:7], imm[19:0]=[31:12]
         rd = bits(word, 11, 7)
         imm20 = bits(word, 31, 12)
         mnem = OPC4.get(opc5, 'ill')
@@ -159,7 +151,7 @@ def decode_instr(word: int, addr: int) -> Decoded:
             imm_se = sign_extend(imm20, 20)
             off = imm_se << 1
             target = addr + off
-            # Disassembly prints the immediate (not absolute target)
+            # print signed imm (not absolute)
             text = f"jal {int_to_reg_format(rd)}, #{imm_se}"
             return Decoded('jal', text, rd=rd, imm=imm_se, target=target)
         elif mnem == 'break':
@@ -184,7 +176,6 @@ def load_words(path: str) -> List[str]:
             lines.append(s)
     return lines
 
-
 def disassemble(bitlines: List[str]) -> Tuple[List[Tuple[str,int,str]], int, Dict[int,int]]:
     """
     Returns:
@@ -192,7 +183,7 @@ def disassemble(bitlines: List[str]) -> Tuple[List[Tuple[str,int,str]], int, Dic
       first_data_addr: address where data starts
       data_mem: {addr: signed_int}
     """
-    rows = []
+    rows: List[Tuple[str,int,str]] = []
     base_addr = 256
     addr = base_addr
     data_mem: Dict[int, int] = {}
@@ -222,7 +213,6 @@ def disassemble(bitlines: List[str]) -> Tuple[List[Tuple[str,int,str]], int, Dic
 
     return rows, first_data_addr, data_mem
 
-
 def write_disassembly(rows: List[Tuple[str,int,str]], outpath: str) -> None:
     with open(outpath, 'w') as f:
         for bits32, addr, text in rows:
@@ -244,7 +234,6 @@ class Simulator:
     def get_mem(self, addr: int) -> int:
         # return signed 32-bit at address (word-aligned). Unassigned -> 0
         if addr % 4 != 0:
-            # Align down silently per project leniency; real ISA would trap
             addr &= ~0x3
         return to_s32(self.data.get(addr, 0))
 
@@ -273,7 +262,6 @@ class Simulator:
 
     def step(self) -> Decoded:
         _, d = self.fetch()
-        # Execute
         next_pc = self.pc + 4
         k = d.kind
 
@@ -291,19 +279,20 @@ class Simulator:
             self.set_reg(d.rd, to_s32(to_u32(self.reg[d.rs1]) & to_u32(d.imm)))
         elif k == 'ori':
             self.set_reg(d.rd, to_s32(to_u32(self.reg[d.rs1]) | to_u32(d.imm)))
-        elif k == 'sll':
+        elif k == 'slli':
             sh = d.imm & 31
             self.set_reg(d.rd, to_s32(to_u32(self.reg[d.rs1]) << sh))
-        elif k == 'sra':
+        elif k == 'srai':
             sh = d.imm & 31
             self.set_reg(d.rd, to_s32(self.reg[d.rs1] >> sh))  # Python >> is arithmetic for negatives
         elif k == 'lw':
-            addr = to_s32(self.reg[d.rs1] + d.imm)
+            addr = to_s32(self.reg[d.rs1] + d.imm)  # base in rs1 for lw
             val = self.get_mem(addr)
             self.set_reg(d.rd, val)
         elif k == 'sw':
-            addr = to_s32(self.reg[d.rs1] + d.imm)
-            self.set_mem(addr, self.reg[d.rs2])
+            # sw src(rs1), imm(base=rs2)
+            addr = to_s32(self.reg[d.rs2] + d.imm)  # base is rs2 (matches printed sw src, imm(base))
+            self.set_mem(addr, self.reg[d.rs1])     # store the source value from rs1
         elif k in ('beq', 'bne', 'blt'):
             a = self.reg[d.rs1]
             b = self.reg[d.rs2]
@@ -317,19 +306,18 @@ class Simulator:
             if take:
                 next_pc = d.target
         elif k == 'jal':
-            # rd gets PC+4, then PC = target
             self.set_reg(d.rd, self.pc + 4)
             next_pc = d.target
         elif k == 'break':
-            pass  # fall through; will stop in run loop
+            pass
         else:
-            pass  # ill: do nothing, advance
+            pass
 
         self.pc = next_pc
         return d
 
     def dump_registers(self) -> List[str]:
-        out = []
+        out: List[str] = []
         linespecs = [
             (0, 'x00:'), (8, 'x08:'), (16, 'x16:'), (24, 'x24:')
         ]
@@ -358,25 +346,24 @@ class Simulator:
 def write_simulation(machine: Simulator, outpath: str) -> None:
     with open(outpath, 'w') as f:
         while True:
-            w, d = machine.fetch()
-            # Header per cycle
+            _, d = machine.fetch()
+            # header
             f.write('-' * 20 + '\n')
             f.write(f"Cycle {machine.cycle}:\t{machine.pc}\t{d.text}\n\n")
 
-            # Execute one step (changes registers/memory/pc)
+            # execute one step
             d_exec = machine.step()
 
-            # Registers
+            # registers
             f.write('Registers\n')
             for line in machine.dump_registers():
                 f.write(line + '\n')
             f.write('\n')
 
-            # Data
+            # data
             for line in machine.dump_data():
                 f.write(line + '\n')
 
-            # End cycle
             if d_exec.kind == 'break':
                 break
             machine.cycle += 1
@@ -386,21 +373,19 @@ def write_simulation(machine: Simulator, outpath: str) -> None:
 
 def main(argv: List[str]) -> None:
     if len(argv) != 2:
-        return  # silent exit per grading script; no stdout prints
+        return  # silent exit per grading script
 
     inpath = argv[1]
-
     bitlines = load_words(inpath)
 
-    # Disassembly pass (and collect initial data memory)
+    # disassembly pass (and collect initial data memory)
     rows, first_data_addr, data_mem = disassemble(bitlines)
 
-    # Write disassembly.txt
+    # write disassembly.txt
     write_disassembly(rows, 'disassembly.txt')
 
-    # Build instruction memory map (up to and including break)
+    # build instruction memory map (up to and including break)
     instr_map: Dict[int, int] = {}
-    addr = 256
     hit_break = False
     for b, a, text in rows:
         if a < first_data_addr:
@@ -411,16 +396,17 @@ def main(argv: List[str]) -> None:
         else:
             break
     if not hit_break:
-        # Ensure there is a synthetic break after the last instruction to avoid runaway
+        # safety — add a synthetic break
         last_addr = (len(instr_map) * 4) + 256
-        instr_map[last_addr] = 0  # decodes to ill; safety not strictly necessary
+        instr_map[last_addr] = 0
 
-    # Determine last data addr for printing (include any existing data words)
+    # last data addr for printing
     last_data_addr = max(data_mem.keys()) if data_mem else first_data_addr - 4
 
-    # Simulation
+    # simulation
     m = Simulator(instr_map, data_mem, first_data_addr, last_data_addr)
     write_simulation(m, 'simulation.txt')
+
 
 if __name__ == '__main__':
     main(sys.argv)

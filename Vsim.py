@@ -126,7 +126,7 @@ def load_words(path):
     return out
 
 def disassemble(bitlines):
-    # returns:
+    # what this returns is:
     # rows -> list of (bit_string, address, asm_text)
     # first_data_addr -> address of the first word after 'break'
     # data_mem -> addr -> signed 32-bit
@@ -139,7 +139,7 @@ def disassemble(bitlines):
 
     for b in bitlines:
         if not in_data:
-            w = int(b, 2)          # (D) inline parse_word
+            w = int(b, 2)
             dec = decode(w, addr)
             rows.append((b, addr, dec["text"]))
             if dec["kind"] == 'break':
@@ -294,7 +294,7 @@ def write_simulation(machine, outpath):
                 break
             machine.cycle += 1
 
-# main
+
 
 def main(argv):
     if len(argv) != 2:
@@ -310,7 +310,7 @@ def main(argv):
     hit_break = False
     for b, a, text in rows:
         if a < first_data_addr:
-            w = int(b, 2)   # (D) inline parse_word
+            w = int(b, 2)
             instr_map[a] = w
             if text == 'break':
                 hit_break = True
